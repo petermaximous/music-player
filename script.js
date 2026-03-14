@@ -10,7 +10,7 @@ const songTitle = document.getElementById("song-title");
 const songArtist = document.getElementById("song-artist");
 const fileInput = document.getElementById("file-input");
 const albumArt = document.getElementById("album-art");
-
+const list= document.querySelector("#playlist"); 
 // State 
 let playlist = [];
 let currentIndex = 0;
@@ -41,12 +41,10 @@ const togglePlay = () => {
         audio.pause();
         playBtn.textContent = "▶";
         albumArt.classList.remove("playing");
+        isPlaying = false;
     } else {
-        audio.play();
-        playBtn.textContent = "⏸";
-        albumArt.classList.add("playing");
+    playSong();
     }
-    isPlaying = !isPlaying;
 };
 
 // Next and previous 
@@ -55,6 +53,7 @@ const nextSong = () => {
     currentIndex = (currentIndex + 1) % playlist.length;
     loadSong(currentIndex);
     if (isPlaying) audio.play();
+    activateHighlight();
 };
 
 const prevSong = () => {
@@ -62,6 +61,7 @@ const prevSong = () => {
     currentIndex = (currentIndex - 1 + playlist.length) % playlist.length;
     loadSong(currentIndex);
     if (isPlaying) audio.play();
+    activateHighlight();
 };
 
 // Update progress bar  
@@ -100,8 +100,42 @@ fileInput.addEventListener("change", (e) => {
     currentIndex = 0;
     loadSong(currentIndex);
     songArtist.textContent = `${playlist.length} songs loaded`;
+    renderPlaylist();
+    activateHighlight();
 });
-
+// Make the playlist 
+const renderPlaylist = ()=>{
+    list.innerHTML="";
+    for(let i =0;i<playlist.length;i++){
+        const item=document.createElement("li");
+        item.textContent= playlist[i].name;
+        item.addEventListener("click",()=>{
+            currentIndex=i;
+            loadSong(i);
+            playSong();
+            activateHighlight();
+        });
+        list.appendChild(item);
+    }
+};
+// Play song
+const playSong=()=>{
+audio.play();
+isPlaying=true;
+playBtn.textContent="⏸";
+albumArt.classList.add("playing");
+activateHighlight();
+};
+//Highlight which song is playing
+const activateHighlight=()=>{
+const songs = document.querySelectorAll("#playlist li");
+for(let i=0;i<songs.length;i++){
+if(i== currentIndex){  songs[i].classList.add("active");  
+}else{
+    songs[i].classList.remove("active");
+}
+};
+};
 // Button listeners 
 playBtn.addEventListener("click", togglePlay);
 nextBtn.addEventListener("click", nextSong);
