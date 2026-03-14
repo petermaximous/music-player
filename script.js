@@ -36,13 +36,15 @@ const loadSong = (index) => {
 // Play or pause 
 const togglePlay = () => {
     if (playlist.length === 0) return;
-
+    const pausedState= document.querySelectorAll("#playlist li"); 
     if (isPlaying) {
         audio.pause();
         playBtn.textContent = "▶";
         albumArt.classList.remove("playing");
+        pausedState[currentIndex].classList.add("paused");
         isPlaying = false;
     } else {
+    pausedState[currentIndex].classList.remove("paused");    
     playSong();
     }
 };
@@ -125,6 +127,7 @@ isPlaying=true;
 playBtn.textContent="⏸";
 albumArt.classList.add("playing");
 activateHighlight();
+
 };
 //Highlight which song is playing
 const activateHighlight=()=>{

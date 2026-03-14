@@ -191,3 +191,7 @@ body {
     background: #1db954;
     color: white;
 }
+#playlist li.active.paused {
+    background: #145a32;
+    color: #aaa;
+}
