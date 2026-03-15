@@ -11,6 +11,7 @@ const createWindow = () => {
         titleBarStyle: "hiddenInset",
         backgroundColor: "#0f0f0f",
         icon: path.join(__dirname, "icon.ico"),
+         autoHideMenuBar: true,
         webPreferences: {
             preload: path.join(__dirname, "preload.js"),
             contextIsolation: true,
