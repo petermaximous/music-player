@@ -11,6 +11,7 @@ const songArtist = document.getElementById("song-artist");
 const fileInput = document.getElementById("file-input");
 const albumArt = document.getElementById("album-art");
 const list= document.querySelector("#playlist"); 
+const folderBtn = document.getElementById("folder-btn");
 // State 
 let playlist = [];
 let currentIndex = 0;
@@ -26,7 +27,7 @@ const formatTime = (seconds) => {
 // Loading songs by index 
 const loadSong = (index) => {
     const song = playlist[index];
-    audio.src = song.url;
+    audio.src = song.path;
     songTitle.textContent = song.name;
     songArtist.textContent = "Local File";
     currentTimeEl.textContent = "0:00";
@@ -139,7 +140,19 @@ if(i== currentIndex){  songs[i].classList.add("active");
 }
 };
 };
+// Open folder
+const openFolder= async ()=>{
+const files = await window.electronAPI.openFolder();
+if(files.length===0) return;
+
+playlist=files;
+currentIndex=0;
+loadSong(currentIndex);
+renderPlaylist();
+activateHighlight();
+};
 // Button listeners 
 playBtn.addEventListener("click", togglePlay);
 nextBtn.addEventListener("click", nextSong);
 prevBtn.addEventListener("click", prevSong);
+folderBtn.addEventListener("click", openFolder);

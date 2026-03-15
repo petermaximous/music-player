@@ -1,4 +1,5 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog } = require("electron");
+const fs = require("fs");
 const path = require("path");
 
 const createWindow = () => {
@@ -18,7 +19,25 @@ const createWindow = () => {
 
     win.loadFile("index.html");
 };
+ipcMain.handle("open-folder", async () => {
+    const result = await dialog.showOpenDialog({
+        properties: ["openDirectory"],
+    });
 
+    if (result.canceled) return [];
+
+    const folderPath = result.filePaths[0];
+    const files = fs.readdirSync(folderPath);
+
+    const audioFiles = files
+        .filter(file => /\.(mp3|flac|wav|ogg|m4a)$/i.test(file))
+        .map(file => ({
+            name: file.replace(/\.[^/.]+$/, ""),
+            path: `${folderPath}\\${file}`,
+        }));
+
+    return audioFiles;
+});
 app.whenReady().then(() => {
     createWindow();
 
