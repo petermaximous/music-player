@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const fs = require("fs");
 const path = require("path");
+const { start } = require("repl");
 
 const createWindow = () => {
     const win = new BrowserWindow({
@@ -26,8 +27,11 @@ ipcMain.handle("open-folder", async () => {
     });
 
     if (result.canceled) return [];
-
+    
+    const { startServer } = require("./server/index");
     const folderPath = result.filePaths[0];
+    console.log("is it working??");
+    startServer(folderPath);
     const files = fs.readdirSync(folderPath);
 
     const audioFiles = files
