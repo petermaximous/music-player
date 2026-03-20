@@ -12,7 +12,11 @@ const fileInput = document.getElementById("file-input");
 const albumArt = document.getElementById("album-art");
 const list= document.querySelector("#playlist"); 
 const folderBtn = document.getElementById("folder-btn");
-// State 
+const socket = io("http://localhost:3000", {
+    reconnection: true,
+    reconnectionDelay: 1000,
+    reconnectionAttempts: 10,
+});// State 
 let playlist = [];
 let currentIndex = 0;
 let isPlaying = false;
@@ -26,6 +30,8 @@ const formatTime = (seconds) => {
 
 // Loading songs by index 
 const loadSong = (index) => {
+    if (!playlist || playlist.length === 0) return;  
+    if (index < 0 || index >= playlist.length) return;  
     const song = playlist[index];
     audio.src = song.path;
     songTitle.textContent = song.name;
@@ -44,6 +50,7 @@ const togglePlay = () => {
         albumArt.classList.remove("playing");
         pausedState[currentIndex].classList.add("paused");
         isPlaying = false;
+        socket.emit("pause");
     } else {
     pausedState[currentIndex].classList.remove("paused");    
     playSong();
@@ -57,6 +64,7 @@ const nextSong = () => {
     loadSong(currentIndex);
     if (isPlaying) audio.play();
     activateHighlight();
+    socket.emit("next");
 };
 
 const prevSong = () => {
@@ -65,6 +73,7 @@ const prevSong = () => {
     loadSong(currentIndex);
     if (isPlaying) audio.play();
     activateHighlight();
+    socket.emit("prev");
 };
 
 // Update progress bar  
@@ -105,6 +114,7 @@ fileInput.addEventListener("change", (e) => {
     songArtist.textContent = `${playlist.length} songs loaded`;
     renderPlaylist();
     activateHighlight();
+    socket.emit("songList",playlist);
 });
 // Make the playlist 
 const renderPlaylist = ()=>{
@@ -117,6 +127,7 @@ const renderPlaylist = ()=>{
             loadSong(i);
             playSong();
             activateHighlight();
+            socket.emit("songChange",i);
         });
         list.appendChild(item);
     }
@@ -128,6 +139,7 @@ isPlaying=true;
 playBtn.textContent="⏸";
 albumArt.classList.add("playing");
 activateHighlight();
+socket.emit("play");
 
 };
 //Highlight which song is playing
@@ -150,9 +162,54 @@ currentIndex=0;
 loadSong(currentIndex);
 renderPlaylist();
 activateHighlight();
+socket.emit("songList",playlist);
 };
+// Sync played media controls with newly added devices
+socket.on("syncState",(state) =>{
+loadSong(state.currentIndex);
+if(state.isPlaying){
+    playSong();
+    
+}else{
+  playBtn.textContent= "▶";
+  albumArt.classList.remove("playing");
+}
+audio.currentTime=state.currentTime;
+playlist=state.songList;
+renderPlaylist();
+activateHighlight();
+});
 // Button listeners 
 playBtn.addEventListener("click", togglePlay);
 nextBtn.addEventListener("click", nextSong);
 prevBtn.addEventListener("click", prevSong);
 folderBtn.addEventListener("click", openFolder);
+// Action listeners
+socket.on("pause",()=>{
+    isPlaying=true;  
+    togglePlay();
+});
+socket.on("play",()=>{
+    isPlaying=false;  
+    togglePlay();
+});
+socket.on("next",()=>{
+  nextSong();
+});
+socket.on("prev",()=>{
+  prevSong();
+});
+socket.on("seek",(time)=>{
+  audio.currentTime=time;
+});
+socket.on("songChange",(index)=>{
+  currentIndex=index;
+  loadSong(index);
+  activateHighlight();
+});
+// Updating the data every 5secs
+setInterval(() => {
+    if (isPlaying) {
+        socket.emit("timeUpdate", audio.currentTime);
+    }
+}, 5000);

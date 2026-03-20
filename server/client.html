@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Player Remote</title>
+    <style>
+        body {
+            background: #0f0f0f;
+            color: white;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            gap: 20px;
+        }
+        h2 { color: #1db954; }
+        button {
+            background: #1db954;
+            border: none;
+            color: white;
+            padding: 16px 32px;
+            border-radius: 50px;
+            font-size: 18px;
+            cursor: pointer;
+            margin: 8px;
+        }
+        button:hover { background: #17a348; }
+        #stream-btn {
+            background: #333;
+            font-size: 14px;
+            padding: 10px 24px;
+        }
+        #stream-btn.active { background: #1db954; }
+        #song-title { font-size: 20px; margin: 0; }
+        #song-artist { color: #888; margin: 0; }
+        #status { font-size: 12px; color: #555; }
+    </style>
+</head>
+<body>
+    <h2>Remote Control</h2>
+    <p id="song-title">No song loaded</p>
+    <p id="song-artist"></p>
+    <p id="status">Waiting for music...</p>
+    <div>
+        <button id="prev">⏮</button>
+        <button id="play">▶</button>
+        <button id="next">⏭</button>
+    </div>
+    <button id="stream-btn">🔊 Play on this device</button>
+    <audio id="local-audio" controls style="width:300px;display:none"></audio>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const playBtn = document.getElementById("play");
+        const streamBtn = document.getElementById("stream-btn");
+        const localAudio = document.getElementById("local-audio");
+        const statusEl = document.getElementById("status");
+        const songTitleEl = document.getElementById("song-title");
+
+        let isPlaying = false;
+        let currentIndex = 0;
+        let isStreaming = false;
+
+        // get server IP from current page URL
+        const serverUrl = window.location.origin;
+
+        const loadStream = () => {
+            localAudio.src = `${serverUrl}/api/song/${currentIndex}`;
+            localAudio.style.display = "block";
+            localAudio.play();
+            isStreaming = true;
+            streamBtn.classList.add("active");
+            streamBtn.textContent = "🔊 Playing on this device";
+            statusEl.textContent = "Streaming locally";
+        };
+
+        streamBtn.addEventListener("click", () => {
+            if (isStreaming) {
+                localAudio.pause();
+                localAudio.style.display = "none";
+                isStreaming = false;
+                streamBtn.classList.remove("active");
+                streamBtn.textContent = "🔊 Play on this device";
+                statusEl.textContent = "Remote control mode";
+            } else {
+                loadStream();
+            }
+        });
+
+        playBtn.addEventListener("click", () => {
+            isPlaying = !isPlaying;
+            playBtn.textContent = isPlaying ? "⏸" : "▶";
+            socket.emit(isPlaying ? "play" : "pause");
+        });
+
+        document.getElementById("next").addEventListener("click", () => {
+            socket.emit("next");
+        });
+
+        document.getElementById("prev").addEventListener("click", () => {
+            socket.emit("prev");
+        });
+
+        socket.on("syncState", (state) => {
+            isPlaying = state.isPlaying;
+            currentIndex = state.currentIndex;
+            playBtn.textContent = isPlaying ? "⏸" : "▶";
+            if (state.songList && state.songList.length > 0) {
+                songTitleEl.textContent = state.songList[currentIndex]?.name || "No song loaded";
+                statusEl.textContent = "Connected";
+            }
+        });
+
+        socket.on("play", () => {
+            isPlaying = true;
+            playBtn.textContent = "⏸";
+        });
+
+        socket.on("pause", () => {
+            isPlaying = false;
+            playBtn.textContent = "▶";
+        });
+
+        socket.on("songChange", (index) => {
+            currentIndex = index;
+            if (isStreaming) loadStream();
+        });
+
+        socket.on("next", () => {
+            currentIndex++;
+            if (isStreaming) loadStream();
+        });
+
+        socket.on("prev", () => {
+            currentIndex--;
+            if (isStreaming) loadStream();
+        });
+    </script>
+</body>
+</html>
